@@ -19,14 +19,15 @@ jobs:
       - setup_remote_docker
       - restore_cache:
           keys:
-            - v1-{{ .Branch }}
+            - v2-{{ .Branch }}-{{ .Revision }}
+            - v2-{{ .Branch }}-
+            - v2-
           paths:
             - /caches/app.tar
       - run:
           name: Load docker image layer cache
           command: |
-            set +o pipefail
-            docker load -i /caches/app.tar | true
+            docker load -i /caches/app.tar 2>&1 || true
       - run:
           name: Login to Dockerhub
           command: |
@@ -46,9 +47,9 @@ jobs:
           command: |
             mkdir -p /caches
             PROJECT_LC=$(echo "${CIRCLE_PROJECT_USERNAME}" | tr '[:upper:]' '[:lower:]')
-            docker save -o /caches/app.tar "${PROJECT_LC}/${CIRCLE_PROJECT_REPONAME#docker-}:${CIRCLE_SHA1}"
+            docker save -o /caches/app.tar "${PROJECT_LC}/${CIRCLE_PROJECT_REPONAME#docker-}:${CIRCLE_SHA1}" $(docker history -q "${PROJECT_LC}/${CIRCLE_PROJECT_REPONAME#docker-}:${CIRCLE_SHA1}" | grep -v missing)
       - save_cache:
-          key: v1-{{ .Branch }}-{{ epoch }}
+          key: v2-{{ .Branch }}-{{ .Revision }}
           paths:
             - /caches/app.tar
 
